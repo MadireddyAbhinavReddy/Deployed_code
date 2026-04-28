@@ -5,7 +5,8 @@ import {
   Tooltip, Legend, ResponsiveContainer, ReferenceArea
 } from 'recharts';
 
-const BASE_URL = 'http://localhost:8000';
+import API_URL from '../config';
+const BASE_URL = API_URL;
 
 const POLLUTANT_LABELS: Record<string, string> = {
   pm2_5: 'PM2.5 (μg/m³)', pm10: 'PM10 (μg/m³)',

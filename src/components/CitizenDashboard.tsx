@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   AlertCircle, Activity, Navigation, RefreshCw, Radio,
-  Wind, Droplets, Thermometer, Sun, CloudRain, ChevronRight,
+  Wind, Droplets, Thermometer, Sun, CloudRain, ChevronRight, Wifi,
 } from 'lucide-react';
 import { getAQICategory } from '../utils/mockData';
 import {
@@ -9,7 +9,8 @@ import {
   Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
-const BASE_URL = 'http://localhost:8000';
+import API_URL from '../config';
+const BASE_URL = API_URL;
 const POLL_INTERVAL = 2000;
 
 const STATIONS = [
@@ -56,6 +57,125 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-white/30 mb-3">{children}</p>
 );
 
+// ── API Data View (data.gov.in) ───────────────────────────────────────────────
+const ApiDataView: React.FC = () => {
+  const [apiData, setApiData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState('');
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${BASE_URL}/api/realtime?city=Hyderabad&limit=500`)
+      .then(r => r.json())
+      .then(d => { setApiData(d); setLoading(false); })
+      .catch(() => { setError('Failed to fetch API data'); setLoading(false); });
+  }, []);
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-24 gap-4">
+      <div className="w-10 h-10 border-2 border-emerald-500/60 border-t-transparent rounded-full animate-spin" />
+      <p className="text-gray-400 dark:text-white/30 text-sm">Fetching from data.gov.in...</p>
+    </div>
+  );
+
+  if (error || apiData?.error) return (
+    <div className="flex items-center gap-3 p-5 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400">
+      <AlertCircle size={18} /> {error || apiData?.error}
+    </div>
+  );
+
+  const stations: any[] = apiData?.stations || [];
+
+  const API_POLLUTANTS = [
+    { key: 'PM2.5',  label: 'PM2.5',  unit: 'μg/m³' },
+    { key: 'PM10',   label: 'PM10',   unit: 'μg/m³' },
+    { key: 'NO2',    label: 'NO₂',   unit: 'μg/m³' },
+    { key: 'SO2',    label: 'SO₂',   unit: 'μg/m³' },
+    { key: 'CO',     label: 'CO',     unit: 'mg/m³' },
+    { key: 'OZONE',  label: 'Ozone',  unit: 'μg/m³' },
+    { key: 'NO',     label: 'NO',     unit: 'μg/m³' },
+    { key: 'NOx',    label: 'NOx',    unit: 'ppb'   },
+    { key: 'NH3',    label: 'NH₃',   unit: 'μg/m³' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+            <Wifi size={18} className="text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <div className="font-semibold text-emerald-800 dark:text-emerald-300 text-sm">data.gov.in — Live AQI</div>
+            <div className="text-emerald-600 dark:text-emerald-400/70 text-xs">
+              {apiData?.total_stations} stations · Updated: {apiData?.last_update}
+              {apiData?.cached_at && <span className="opacity-60 ml-2">· cached {apiData.cached_at}</span>}
+            </div>
+          </div>
+        </div>
+        <div className="text-xs text-emerald-600 dark:text-emerald-400/60">Refreshes every 10 min · Source: CPCB</div>
+      </div>
+
+      {/* Station cards — same UI as live stream */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        {stations.map((s: any, i: number) => {
+          const aqiCat   = s.aqi ? getAQICategory(s.aqi) : null;
+          const aqiColor = aqiCat ? (AQI_COLOR[aqiCat.label] || '#6b7280') : '#6b7280';
+          const stName   = s.station?.replace(', Hyderabad - TSPCB', '').replace(', Hyderabad - TSPCB', '') || `Station ${i+1}`;
+
+          return (
+            <Card key={i} className="overflow-hidden">
+              {/* AQI hero strip */}
+              <div className="p-5 relative overflow-hidden"
+                style={{ background: `linear-gradient(135deg, ${aqiColor}15 0%, ${aqiColor}05 100%)` }}>
+                <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none"
+                  style={{ background: `radial-gradient(circle, ${aqiColor}20 0%, transparent 70%)` }} />
+                <div className="relative flex items-start justify-between">
+                  <div>
+                    <div className="text-xs text-gray-400 dark:text-white/35 mb-1 font-medium">{stName}</div>
+                    <div className="text-5xl font-black leading-none" style={{ color: aqiColor }}>
+                      {s.aqi ?? '—'}
+                    </div>
+                    <div className="text-sm font-semibold mt-1.5" style={{ color: aqiColor }}>
+                      {aqiCat?.label ?? 'No AQI'}
+                    </div>
+                  </div>
+                  <div className="text-right text-xs text-gray-400 dark:text-white/30">
+                    <div className="flex items-center gap-1 justify-end">
+                      <RefreshCw size={9} /> {s.last_update}
+                    </div>
+                  </div>
+                </div>
+                {/* AQI bar */}
+                {s.aqi && (
+                  <div className="mt-4">
+                    <div className="h-1.5 rounded-full bg-gray-100 dark:bg-white/8 overflow-hidden">
+                      <div className="h-full rounded-full"
+                        style={{ width: `${Math.min((s.aqi / 500) * 100, 100)}%`, backgroundColor: aqiColor }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Pollutant grid */}
+              <div className="p-4 grid grid-cols-3 gap-2 border-t border-gray-100 dark:border-white/6">
+                {API_POLLUTANTS.filter(p => s[p.key] != null).map(({ key, label, unit }) => (
+                  <div key={key} className="text-center p-2 rounded-xl bg-gray-50 dark:bg-white/[0.03]">
+                    <div className="text-xs text-gray-400 dark:text-white/30 font-medium">{label}</div>
+                    <div className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{s[key]}</div>
+                    <div className="text-xs text-gray-300 dark:text-white/20">{unit}</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 const CitizenDashboard: React.FC = () => {
   const [selectedId, setSelectedId]   = useState(STATIONS[0].id);
@@ -63,6 +183,7 @@ const CitizenDashboard: React.FC = () => {
   const [history, setHistory]         = useState<any[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [transitioning, setTransitioning] = useState(false);
+  const [dataSource, setDataSource]   = useState<'live' | 'api'>('live');
   const [geoLoading, setGeoLoading]   = useState(false);
   const [geoError, setGeoError]       = useState<string | null>(null);
   const [nearestDist, setNearestDist] = useState<number | null>(null);
@@ -196,8 +317,23 @@ const CitizenDashboard: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-medium">
-            <Radio size={12} /> Live Stream
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-white/6 border border-gray-200 dark:border-white/8">
+            <button onClick={() => setDataSource('live')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                dataSource === 'live'
+                  ? 'bg-white dark:bg-white/10 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                  : 'text-gray-400 dark:text-white/35 hover:text-gray-600 dark:hover:text-white/60'
+              }`}>
+              <Radio size={11} /> Live Stream
+            </button>
+            <button onClick={() => setDataSource('api')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                dataSource === 'api'
+                  ? 'bg-white dark:bg-white/10 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-gray-400 dark:text-white/35 hover:text-gray-600 dark:hover:text-white/60'
+              }`}>
+              <Wifi size={11} /> API Data
+            </button>
           </div>
         </div>
       </div>
@@ -205,8 +341,8 @@ const CitizenDashboard: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <div className="space-y-6">
 
-            {/* Station selector */}
-            <div>
+            {/* Station selector — only in live mode */}
+            {dataSource === 'live' && <div>
               <SectionLabel>Select Station</SectionLabel>
               <div className="flex flex-wrap gap-2 items-center">
                 {STATIONS.map(s => (
@@ -237,9 +373,13 @@ const CitizenDashboard: React.FC = () => {
                   <AlertCircle size={11} /> {geoError}
                 </div>
               )}
-            </div>
+            </div>}
 
-            {stationData ? (
+            {/* API Data View */}
+            {dataSource === 'api' && <ApiDataView />}
+
+            {/* Live Stream View */}
+            {dataSource === 'live' && (stationData ? (
               <div
                 style={{
                   opacity: transitioning ? 0 : 1,
@@ -441,7 +581,7 @@ const CitizenDashboard: React.FC = () => {
                 <div className="w-10 h-10 border-2 border-emerald-500/60 border-t-transparent rounded-full animate-spin" />
                 <p className="text-gray-400 dark:text-white/30 text-sm">Connecting to live stream...</p>
               </div>
-            )}
+            ))}
         </div>
       </div>
     </div>

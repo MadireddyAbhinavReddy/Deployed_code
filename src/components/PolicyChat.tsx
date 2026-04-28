@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import API_URL from '../config';
 
 interface Message {
   id: number;
@@ -38,7 +39,7 @@ const PolicyChat: React.FC = () => {
     setInput('');
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/chat', {
+      const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: text }),
@@ -47,7 +48,7 @@ const PolicyChat: React.FC = () => {
       const data = await res.json();
       setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', text: data.answer, sources: data.sources ?? [], timestamp: new Date() }]);
     } catch {
-      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', text: "Couldn't reach the backend. Once it's running on localhost:8000, I can answer questions grounded in official Indian environmental documents.", timestamp: new Date() }]);
+      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', text: "Couldn't reach the backend. Please try again later.", timestamp: new Date() }]);
     }
     setLoading(false);
   };

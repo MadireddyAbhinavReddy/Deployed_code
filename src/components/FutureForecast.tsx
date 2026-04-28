@@ -5,7 +5,8 @@ import {
   Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 
-const BASE_URL = 'http://localhost:8000';
+import API_URL from '../config';
+const BASE_URL = API_URL;
 
 const STATIONS = [
   'Somajiguda', 'Kompally', 'IITH Kandi', 'ICRISAT Patancheru',

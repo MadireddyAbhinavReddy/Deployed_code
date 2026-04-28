@@ -21,7 +21,7 @@ app = FastAPI(title="Clarity.AI — AQI + Policy Chatbot")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # tighten to your Vercel URL in production if needed
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -87,6 +87,25 @@ COL_MAP = {
 }
 
 STATION_PREFIX_MAP = {k: v.replace("_2025.csv", "") for k, v in CORE_STATIONS.items()}
+
+# Known year ranges per station (from actual data analysis) — used as fast fallback
+# when local files aren't available and HF fetching would be too slow
+STATION_YEAR_RANGES = {
+    "Somajiguda":          list(range(2022, 2026)),
+    "Kompally":            list(range(2022, 2026)),
+    "IITH Kandi":          list(range(2022, 2026)),
+    "ICRISAT Patancheru":  list(range(2017, 2026)),
+    "IDA Pashamylaram":    list(range(2016, 2026)),
+    "Central University":  list(range(2017, 2026)),
+    "Zoo Park":            list(range(2015, 2026)),
+    "Bollaram Industrial": list(range(2017, 2026)),
+    "ECIL Kapra":          list(range(2022, 2026)),
+    "Kokapet":             list(range(2022, 2026)),
+    "Nacharam TSIIC":      list(range(2022, 2026)),
+    "New Malakpet":        list(range(2022, 2026)),
+    "Ramachandrapuram":    list(range(2022, 2026)),
+    "Sanathnagar":         list(range(2015, 2026)),
+}
 
 NEON_URL = "postgresql://neondb_owner:npg_BKeulphnN0I2@ep-withered-moon-a169dqm7-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
@@ -226,18 +245,34 @@ def get_policy_years(station: str = Query(...)):
     fname_2025   = all_stations.get(station)
     if not fname_2025:
         return []
+
+    # Fast path: use known year ranges if local files not available
+    local_check = os.path.join(CPCB_DIR, fname_2025)
+    if not os.path.exists(local_check) and station in STATION_YEAR_RANGES:
+        return sorted(STATION_YEAR_RANGES[station], reverse=True)
+
     years = []
     for y in range(2009, 2026):
         fname = fname_2025.replace("_2025.csv", f"_{y}.csv")
-        try:
-            df = load_csv_from_hf(fname)
-            if not df.empty and "PM2.5 (µg/m³)" in df.columns:
+        local_path = os.path.join(CPCB_DIR, fname)
+        if os.path.exists(local_path):
+            try:
+                df = pd.read_csv(local_path, usecols=["PM2.5 (µg/m³)"], nrows=100)
                 if df["PM2.5 (µg/m³)"].notnull().sum() > 0:
                     years.append(y)
-            elif not df.empty:
+            except Exception:
                 years.append(y)
-        except Exception:
-            pass
+        else:
+            try:
+                df = load_csv_from_hf(fname)
+                if not df.empty:
+                    if "PM2.5 (µg/m³)" in df.columns:
+                        if df["PM2.5 (µg/m³)"].notnull().sum() > 0:
+                            years.append(y)
+                    else:
+                        years.append(y)
+            except Exception:
+                pass
     return sorted(years, reverse=True)
 
 
@@ -249,19 +284,34 @@ def get_policy_daterange(station: str = Query(...)):
     if not fname_2025:
         return {"min": None, "max": None}
 
+    # Fast path: use known year ranges if local files not available
+    local_check = os.path.join(CPCB_DIR, fname_2025)
+    if not os.path.exists(local_check) and station in STATION_YEAR_RANGES:
+        yrs = STATION_YEAR_RANGES[station]
+        return {"min": f"{min(yrs)}-01-01", "max": f"{max(yrs)}-12-31"}
+
     years = []
     for y in range(2009, 2026):
         fname = fname_2025.replace("_2025.csv", f"_{y}.csv")
-        try:
-            df = load_csv_from_hf(fname)
-            if not df.empty:
-                if "PM2.5 (µg/m³)" in df.columns:
-                    if df["PM2.5 (µg/m³)"].notnull().sum() > 0:
-                        years.append(y)
-                else:
+        local_path = os.path.join(CPCB_DIR, fname)
+        if os.path.exists(local_path):
+            try:
+                df = pd.read_csv(local_path, usecols=["PM2.5 (µg/m³)"], nrows=100)
+                if df["PM2.5 (µg/m³)"].notnull().sum() > 0:
                     years.append(y)
-        except Exception:
-            pass
+            except Exception:
+                years.append(y)
+        else:
+            try:
+                df = load_csv_from_hf(fname)
+                if not df.empty:
+                    if "PM2.5 (µg/m³)" in df.columns:
+                        if df["PM2.5 (µg/m³)"].notnull().sum() > 0:
+                            years.append(y)
+                    else:
+                        years.append(y)
+            except Exception:
+                pass
 
     if not years:
         return {"min": None, "max": None}

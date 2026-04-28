@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Brain, Loader, FlaskConical } from 'lucide-react';
+import API_URL from '../config';
 
 const ZONES = [
   { id: 'hyd-somajiguda-tspcb-2024-25',               label: 'Somajiguda' },
@@ -31,7 +32,7 @@ const Predictor: React.FC = () => {
     try {
       const knownNumeric: Record<string, number> = {};
       for (const [k, v] of Object.entries(known)) { if (v !== '') knownNumeric[k] = parseFloat(v); }
-      const res = await fetch('http://localhost:8000/predict', {
+      const res = await fetch(`${API_URL}/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timestamp, zone_id: zone, target, known: knownNumeric }),

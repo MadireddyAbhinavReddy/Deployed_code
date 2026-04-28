@@ -4,6 +4,7 @@ import {
   Wind, ArrowRight, Activity, BarChart3, Map,
   TrendingUp, Brain, MessageSquare, Radio, FlaskConical, Search,
 } from 'lucide-react';
+import API_URL from '../config';
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -345,7 +346,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   const typed = useTypewriter(PROMPTS);
 
   useEffect(() => {
-    fetch('http://localhost:8000/live/latest')
+    fetch(`${API_URL}/live/latest`)
       .then(r => r.json())
       .then((data: any[]) => {
         if (Array.isArray(data) && data.length > 0) {
