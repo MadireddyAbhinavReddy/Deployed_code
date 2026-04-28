@@ -18,7 +18,10 @@ load_dotenv()
 
 HF_DATASET_REPO = os.getenv("HF_DATASET_REPO", "AbhinavHuggingFaceAccount/cpcb-hyderabad")
 HF_TOKEN        = os.getenv("HF_TOKEN_UPLOAD") or os.getenv("HF_TOKEN")
-CPCB_DIR        = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "cpcb_hyderabad")
+CPCB_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "cpcb_hyderabad")
+# Also try cpcb_hyderabad1 as fallback
+if not os.path.isdir(CPCB_DIR):
+    CPCB_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "cpcb_hyderabad1")
 
 # In-memory cache: filename → raw CSV bytes
 _csv_cache: dict = {}

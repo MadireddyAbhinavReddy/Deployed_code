@@ -4,15 +4,15 @@ import AuthPage from './components/AuthPage';
 import CitizenDashboard from './components/CitizenDashboard';
 import PolicyDashboard from './components/PolicyDashboard';
 import MapView from './components/MapView';
-import Predictor from './components/Predictor';
-import ForecastDashboard from './components/ForecastDashboard';
+// import Predictor from './components/Predictor';       // disabled — TabPFN not available on server
+// import ForecastDashboard from './components/ForecastDashboard'; // disabled — Prophet memory issues
 import FutureForecast from './components/FutureForecast';
 import PolicyChat from './components/PolicyChat';
 import { supabase } from './supabaseClient';
-import { Users, Building2, Map, Brain, TrendingUp, Wind, ArrowLeft, MessageCircle, Telescope, Moon, Sun, LogOut } from 'lucide-react';
+import { Users, Building2, Map, Wind, ArrowLeft, MessageCircle, Telescope, Moon, Sun, LogOut } from 'lucide-react';
 import './App.css';
 
-type ViewType = 'citizen' | 'policy' | 'map' | 'predictor' | 'forecast' | 'chat' | 'future';
+type ViewType = 'citizen' | 'policy' | 'map' | 'chat' | 'future';
 
 function App() {
   const [showLanding, setShowLanding] = useState(true);
@@ -90,11 +90,11 @@ function App() {
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
               {([
                 { view: 'citizen',   icon: Users,         label: 'Live' },
-                { view: 'policy',    icon: Building2,     label: 'Policy' },
+                { view: 'policy',    icon: Building2,     label: 'Trends' },
                 { view: 'map',       icon: Map,           label: 'Map' },
-                { view: 'forecast',  icon: TrendingUp,    label: 'Impact' },
+                // { view: 'forecast',  icon: TrendingUp,    label: 'Impact' },   // disabled
                 { view: 'future',    icon: Telescope,     label: 'Forecast' },
-                { view: 'predictor', icon: Brain,         label: 'AI' },
+                // { view: 'predictor', icon: Brain,         label: 'AI' },       // disabled
                 { view: 'chat',      icon: MessageCircle, label: 'Chat' },
               ] as { view: ViewType; icon: any; label: string }[]).map(({ view, icon: Icon, label }) => (
                 <button key={view} onClick={() => setActiveView(view)}
@@ -137,8 +137,8 @@ function App() {
         {activeView === 'citizen'   && <CitizenDashboard />}
         {activeView === 'policy'    && <PolicyDashboard />}
         {activeView === 'map'       && <MapView />}
-        {activeView === 'predictor' && <Predictor />}
-        {activeView === 'forecast'  && <ForecastDashboard />}
+        {/* activeView === 'predictor' && <Predictor /> */}
+        {/* activeView === 'forecast'  && <ForecastDashboard /> */}
         {activeView === 'future'    && <FutureForecast />}
         {activeView === 'chat'      && <PolicyChat />}
       </div>

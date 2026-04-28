@@ -11,7 +11,6 @@ import glob as glob_module
 import pandas as pd
 import numpy as np
 from functools import lru_cache
-from prophet import Prophet
 from hf_loader import load_csv_from_hf
 import logging
 logging.getLogger("prophet").setLevel(logging.WARNING)
@@ -98,6 +97,8 @@ def run_forecast(
         return {"error": f"Not enough pre-policy data ({len(train)} days)."}
 
     print(f"Training Prophet on {len(train)} days ({train['ds'].min().date()} → {train['ds'].max().date()})")
+
+    from prophet import Prophet  # lazy import — saves ~150MB RAM at startup
 
     # Met regressors — skip if too many NaNs
     met_cols = []  # disabled: met data has too many gaps across years

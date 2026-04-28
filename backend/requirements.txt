@@ -6,9 +6,7 @@ numpy
 groq
 python-dotenv
 psycopg2-binary
-prophet
 requests
 huggingface_hub
 xgboost
 lightgbm
-scikit-learn

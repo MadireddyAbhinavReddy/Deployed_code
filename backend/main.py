@@ -349,8 +349,7 @@ class PredictRequest(BaseModel):
 
 @app.post("/predict")
 def predict_pollutant(req: PredictRequest):
-    from predictor import predict
-    return predict(timestamp=req.timestamp, zone_id=req.zone_id, known=req.known, target=req.target)
+    return {"error": "AI Predictor is temporarily disabled."}
 
 
 @app.get("/predict/columns")
@@ -373,10 +372,7 @@ class ForecastRequest(BaseModel):
 
 @app.post("/forecast/policy")
 def forecast_policy_impact(req: ForecastRequest):
-    from forecaster import run_forecast
-    return run_forecast(station=req.station, pollutant=req.pollutant,
-                        policy_start=req.policy_start, policy_end=req.policy_end,
-                        forecast_days=req.forecast_days)
+    return {"error": "Policy Impact forecast is temporarily disabled."}
 
 
 # ── Chatbot (Groq + RAG) ──────────────────────────────────────────────────────
